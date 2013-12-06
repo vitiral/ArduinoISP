@@ -50,6 +50,8 @@
 //   BOARD.upload.using=avrisp
 //   BOARD.upload.protocol=avrisp
 
+#define DEBUG
+
 #include "SPI.h"
 #include "pins_arduino.h"
 #include "debug.h"
@@ -101,6 +103,7 @@ void setup() {
   pulse(LED_HB, 2);
 
   setup_talk();
+  Serial.println(__FUNCTION__);
   debug("Starting...");
   stderr = 0;
 }
@@ -172,8 +175,13 @@ void loop(void) {
   // set to talk mode if no transmission has been sent in 250 ms
   static long int last_print = millis();
   
-  assert((mode == TALK_MODE) or ((millis() - isp_time < 250)));
-  noerr();
+  if(derr){
+    log_err();
+    clearerror();
+    debug("Cleared Error");
+    mode = TALK_MODE;
+  }
+  assert_raise((mode == TALK_MODE) or ((millis() - isp_time < 250)), ERR_TIMEOUT);
 
   short int no_serial;
   if(Serial.available()){
@@ -189,8 +197,6 @@ void loop(void) {
   }
 
   if(mode == ISP_MODE){
-    printerrno();
-    clearerror();
     // is pmode active?
     if (pmode) digitalWrite(LED_PMODE, HIGH);
     else digitalWrite(LED_PMODE, LOW);
@@ -226,17 +232,7 @@ void loop(void) {
   }
   return;
 error:
-  if(derr == ERR_TIMEOUT){  
-    if(errno != 0) errno = ERR_TIMEOUT;
-    log_err("loop T");
-    clearerror();
-    mode = TALK_MODE;
-  }
-  else{
-    log_err("Unknown");
-    clearerror();
-    mode = TALK_MODE;
-  }
+  return;
 }
 
 void talk(){
@@ -260,12 +256,10 @@ void talk(){
 
 uint8_t getch() {
   while(!Serial.available()){
-    assert(millis() - isp_time < 250);
+    assert_raise(millis() - isp_time < 250, ERR_TIMEOUT);
   }
   return Serial.read();
 error:
-  errno = ERR_TIMEOUT;
-  log_err("getch TO");
   return -1;
 }
 
