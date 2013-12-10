@@ -51,10 +51,10 @@
 //   BOARD.upload.protocol=avrisp
 
 #define DEBUG
+#include <errorhandling.h>
 
-#include "SPI.h"
-#include "pins_arduino.h"
-#include "debug.h"
+#include <SPI.h>
+#include <pins_arduino.h>
 
 #include <SoftwareSerial.h>
 
@@ -80,12 +80,10 @@
 int error = 0;
 void pulse(int pin, int times);
 
-
 #define TALK_MODE 1
 #define ISP_MODE 2
 char mode;
 SoftwareSerial SoftSerial(MISO, MOSI); // RX, TX
-
 
 // Debug stuff
 #define MAX_STR_BUF 30
@@ -103,8 +101,8 @@ void setup() {
   pulse(LED_HB, 2);
 
   setup_talk();
-  Serial.println(__FUNCTION__);
-  debug("Starting...");
+
+  log_info("Starting...");
   stderr = 0;
 }
 
@@ -174,11 +172,9 @@ long int isp_time = 0;
 void loop(void) {
   // set to talk mode if no transmission has been sent in 250 ms
   static long int last_print = millis();
-  
+
   if(derr){
-    log_err();
-    clearerror();
-    debug("Cleared Error");
+    clrerr_log();
     mode = TALK_MODE;
   }
   assert_raise((mode == TALK_MODE) or ((millis() - isp_time < 250)), ERR_TIMEOUT);
@@ -239,15 +235,17 @@ void talk(){
   //transmits data through SoftSerial. A value of 0xA resets it.
   //TODO: need 0xA three times?
   char c;
+  static char last_c = 0;
   if(Serial.available()){
     c = Serial.peek();
-    if(c == 0xA){
+    if(c == 0xA and last_c == 0xA){
       setup_isp();
       avrisp();
       return;
     }
     c = Serial.read();
     SoftSerial.write(c);
+    last_c = c;
   }
   if(SoftSerial.available()){
     Serial.write(SoftSerial.read());
@@ -256,20 +254,16 @@ void talk(){
 
 uint8_t getch() {
   while(!Serial.available()){
-    assert_raise(millis() - isp_time < 250, ERR_TIMEOUT);
+    assert_raise_return(millis() - isp_time < 250, ERR_TIMEOUT, -1);
   }
   return Serial.read();
-error:
-  return -1;
 }
 
 void fill(int n) {
   for (int x = 0; x < n; x++) {
     buff[x] = getch();
-    noerr_log();
-    }
-error:
-    return;
+    iferr_log_return();
+  }
 }
 
 #define PTIME 30
@@ -299,7 +293,7 @@ uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
 
 void empty_reply() {
   char c = getch();
-  noerr_log();
+  iferr_log_return();
   if (CRC_EOP == c) {
     Serial.print((char)STK_INSYNC);
     Serial.print((char)STK_OK);
@@ -308,13 +302,11 @@ void empty_reply() {
     error++;
     Serial.print((char)STK_NOSYNC);
   }
-error:
-  return;
 }
 
 void breply(uint8_t b) {
   char c = getch();
-  noerr_log();
+  iferr_log_return();
   if (CRC_EOP == c) {
     Serial.print((char)STK_INSYNC);
     Serial.print((char)b);
@@ -324,8 +316,6 @@ void breply(uint8_t b) {
     error++;
     Serial.print((char)STK_NOSYNC);
   }
-error:
-  return;
 }
 
 void get_version(uint8_t c) {
@@ -395,12 +385,10 @@ void universal() {
   uint8_t ch;
 
   fill(4);
-  noerr_log();
+  iferr_log_return();
   if(error) return;
   ch = spi_transaction(buff[0], buff[1], buff[2], buff[3]);
   breply(ch);
-error:
-  return;
 }
 
 void flash(uint8_t hilo, int addr, uint8_t data) {
@@ -430,7 +418,7 @@ int current_page(int addr) {
 void write_flash(int length) {
   fill(length);
   char c = getch();
-  noerr_log();
+  iferr_log_return();
   if (CRC_EOP == c) {
     Serial.print((char) STK_INSYNC);
     Serial.print((char) write_flash_pages(length));
@@ -439,8 +427,6 @@ void write_flash(int length) {
     error++;
     Serial.print((char) STK_NOSYNC);
   }
-error:
-  return;
 }
 
 uint8_t write_flash_pages(int length) {
@@ -472,22 +458,20 @@ uint8_t write_eeprom(int length) {
   }
   while (remaining > EECHUNK) {
     write_eeprom_chunk(start, EECHUNK);
-    noerr_log();
+    iferr_log_return(STK_FAILED);
     start += EECHUNK;
     remaining -= EECHUNK;
   }
   write_eeprom_chunk(start, remaining);
-  noerr_log()
-    return STK_OK;
-error:
-  return STK_FAILED;
+  iferr_log_return(STK_FAILED);
+  return STK_OK;
 }
 // write (length) bytes, (start) is a byte address
 uint8_t write_eeprom_chunk(int start, int length) {
   // this writes byte-by-byte,
   // page writing may be faster (4 bytes at a time)
   fill(length);
-  noerr_log();
+  iferr_log_return(STK_FAILED);
   prog_lamp(LOW);
   for (int x = 0; x < length; x++) {
     int addr = start+x;
@@ -496,8 +480,6 @@ uint8_t write_eeprom_chunk(int start, int length) {
   }
   prog_lamp(HIGH);
   return STK_OK;
-error:
-  return STK_FAILED;
 }
 
 void program_page() {
@@ -506,17 +488,17 @@ void program_page() {
   int length = 256 * getch();
   length += getch();
   char memtype = getch();
-  noerr_log();
+  iferr_log_return();
   // flash memory @here, (length) bytes
   if (memtype == 'F') {
     write_flash(length);
-    noerr_log();
+    iferr_log_return();
     return;
   }
   if (memtype == 'E') {
     result = (char)write_eeprom(length);
     c = getch();
-    noerr_log();
+    iferr_log_return();
     if (CRC_EOP == c) {
       Serial.print((char) STK_INSYNC);
       Serial.print(result);
@@ -528,8 +510,6 @@ void program_page() {
     return;
   }
   Serial.print((char)STK_FAILED);
-  return;
-error:
   return;
 }
 
@@ -568,7 +548,7 @@ void read_page() {
   length += getch();
   char memtype = getch();
   char c = getch();
-  noerr_log();
+  iferr_log_return();
   if (CRC_EOP != c) {
     error++;
     Serial.print((char) STK_NOSYNC);
@@ -579,14 +559,12 @@ void read_page() {
   if (memtype == 'E') result = eeprom_read_page(length);
   Serial.print(result);
   return;
-error:
-  return;
 }
 
 void read_signature() {
   uint8_t high, middle, low;
   char c = getch();
-  noerr_log();
+  iferr_log_return();
   if (CRC_EOP != c) {
     error++;
     Serial.print((char) STK_NOSYNC);
@@ -601,8 +579,6 @@ void read_signature() {
   Serial.print((char) low);
   Serial.print((char) STK_OK);
   return;
-error:
-  return;
 }
 //////////////////////////////////////////
 //////////////////////////////////////////
@@ -615,7 +591,7 @@ int avrisp() {
   uint8_t data, low, high;
   char c;
   uint8_t ch = getch();
-  noerr_log();
+  iferr_log_catch();
   isp_time = millis();
   switch (ch) {
   case '0': // signon
@@ -624,7 +600,7 @@ int avrisp() {
     break;
   case '1':
     c = getch();
-    noerr_log();
+    iferr_log_catch();
     if (c == CRC_EOP) {
       Serial.print((char) STK_INSYNC);
       Serial.print("AVR ISP");
@@ -637,18 +613,18 @@ int avrisp() {
     break;
   case 'A':
     c = getch();
-    noerr_log();
+    iferr_log_catch();
     get_version(c);
     break;
   case 'B':
     fill(20);
-    noerr_log();
+    iferr_log_catch();
     set_parameters();
     empty_reply();
     break;
   case 'E': // extended parameters - ignore for now
     fill(5);
-    noerr_log();
+    iferr_log_catch();
     empty_reply();
     break;
 
@@ -659,25 +635,25 @@ int avrisp() {
     else {
       start_pmode();
     }
-    noerr_log();
+    iferr_log_catch();
     empty_reply();
     break;
   case 'U': // set address (word)
     here = getch();
     here += 256 * getch();
-    noerr_log();
+    iferr_log_catch();
     empty_reply();
     break;
 
   case 0x60: //STK_PROG_FLASH
     low = getch();
     high = getch();
-    noerr_log();
+    iferr_log_catch();
     empty_reply();
     break;
   case 0x61: //STK_PROG_DATA
     data = getch();
-    noerr_log();
+    iferr_log_catch();
     empty_reply();
     break;
 
@@ -694,7 +670,7 @@ int avrisp() {
   case 'Q': //0x51
     error=0;
     end_pmode();
-    noerr_log();
+    iferr_log_catch();
     empty_reply();
     break;
 
@@ -713,17 +689,19 @@ int avrisp() {
   default:
     error++;
     c = getch();
-    noerr_log();
+    iferr_log_catch();
     if (CRC_EOP == c)
       Serial.print((char)STK_UNKNOWN);
     else
       Serial.print((char)STK_NOSYNC);
   }
-  noerr_log();
+  iferr_log_catch();
   return 0;
 error:
   return 1;
 }
+
+
 
 
 
