@@ -46,7 +46,6 @@
 #define DEBUG
 //#define LOGLEVEL LOGV_SILENT
 
-
 #include "pins_arduino.h"
 #include <SoftwareSerial.h>
 #include <errorhandling.h>
@@ -54,7 +53,7 @@
 
 #define MODE_TALK 0
 #define MODE_ISP   1
-unsigned short mode = MODE_TALK;
+unsigned short mode = 100;
 
 #define RESET     SS
 
@@ -86,7 +85,9 @@ void setup() {
   pinMode(LED_HB, OUTPUT);
   pulse(LED_HB, 2);
   wdt_enable(WDTO_2S);  //reset after 2 seconds if no pat received
+  set_mode_talk();
   log_info(String("Setup done, mode=") + String(mode));
+  
 }
 
 int error=0;
@@ -133,17 +134,8 @@ void loop(void) {
     clrerr_log();
   }
 
-  if(mode != MODE_TALK){
-    assert_raisem_return((millis() - isp_time) < 2000, ERR_TIMEOUT,
-    String(mode == MODE_TALK) + String(" ") + String(millis() - isp_time < 2000));
-  }
-
-  assert_raisem_return((mode == MODE_TALK) or ((millis() - isp_time < 2000)), ERR_TIMEOUT,
-  String(mode == MODE_TALK) + String(" ") + String(millis() - isp_time < 2000));
-
   if(mode == MODE_ISP){
     // is pmode active?
-    debug("loop isp");
     if (pmode) digitalWrite(LED_PMODE, HIGH); 
     else digitalWrite(LED_PMODE, LOW);
     // is there an error?

@@ -1,6 +1,7 @@
 
 SoftwareSerial Talk(MISO, MOSI); // RX, TX
-#define ISP_START_CHAR 0x0A
+//#define ISP_START_CHAR 0x0A
+#define ISP_START_CHAR 0x30
 
 void talk(){
   wdt_reset();
@@ -13,11 +14,16 @@ void talk(){
       return;
     }
     c = Serial.read();
+    debug(String("from_user:") + c);
     Talk.write(c);
   }
+  
   if(Talk.available()){
-    Serial.write(Talk.read());
+    c = Talk.read();
+    debug(String("from_ard:") + c);
+    Serial.write(c);
   }
+  
   Serial.flush();
 }
 
@@ -25,14 +31,15 @@ void set_mode_talk(){
   set_loglevel(LOGV_DEBUG);
   mode = MODE_TALK;
   Talk.begin(57600);
-  log_info("Talk Mode:");
+  Serial.println("Talk Mode:");
 }
 
 void set_mode_isp(){
+  debug("ISP Mode");
+  Talk.end();
   wdt_reset();
   mode = MODE_ISP;
   set_loglevel(LOGV_SILENT);
-  debug("ISP Mode");
   if(derr) clrerr_log();
 }
 
