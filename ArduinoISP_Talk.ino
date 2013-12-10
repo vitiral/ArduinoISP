@@ -49,6 +49,7 @@
 #include "pins_arduino.h"
 #include <SoftwareSerial.h>
 #include <errorhandling.h>
+#include <avr/wdt.h>
 
 #define MODE_TALK 0
 #define MODE_ISP   1
@@ -83,6 +84,7 @@ void setup() {
   pulse(LED_ERR, 2);
   pinMode(LED_HB, OUTPUT);
   pulse(LED_HB, 2);
+  wdt_enable(WDTO_2S);  //reset after 2 seconds if no pat received
 }
 
 int error=0;
@@ -154,25 +156,19 @@ void loop(void) {
     }
   }
   else if(mode == MODE_TALK){
-    debug("loop talk");
+    //debug("loop talk");
     talk();
   }
   else assert_return(0);
 }
 
 uint8_t getch() {
-  while(!Serial.available()){
-    assert_raise_return(millis() - isp_time < 2000, ERR_TIMEOUT, 'E');
-  }
-  isp_time = millis();
+  while(!Serial.available());
   return Serial.read();
 }
-
 void fill(int n) {
   for (int x = 0; x < n; x++) {
-    buff[x] = getch(); 
-    iferr_log_return(); 
-    iferr_log_return();
+    buff[x] = getch();
   }
 }
 
@@ -200,34 +196,30 @@ void spi_init() {
 }
 
 void spi_wait() {
-  while (!(SPSR & (1 << SPIF))){
-    assert_raise_return(millis() - isp_time < 2000, ERR_TIMEOUT);
-  }
+  do {
+  } 
+  while (!(SPSR & (1 << SPIF)));
 }
 
 uint8_t spi_send(uint8_t b) {
   uint8_t reply;
   SPDR=b;
-  spi_wait(); 
-  iferr_log_return(0);
+  spi_wait();
   reply = SPDR;
   return reply;
 }
 
 uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
   uint8_t n;
-  spi_send(a);
+  spi_send(a); 
   n=spi_send(b);
   //if (n != a) error = -1;
   n=spi_send(c);
-  iferr_log_return();
   return spi_send(d);
 }
 
 void empty_reply() {
-  char c = getch(); 
-  iferr_log_return();
-  if (CRC_EOP == c) {
+  if (CRC_EOP == getch()) {
     Serial.print((char)STK_INSYNC);
     Serial.print((char)STK_OK);
   } 
@@ -238,9 +230,7 @@ void empty_reply() {
 }
 
 void breply(uint8_t b) {
-  char c = getch(); 
-  iferr_log_return();
-  if (CRC_EOP == c) {
+  if (CRC_EOP == getch()) {
     Serial.print((char)STK_INSYNC);
     Serial.print((char)b);
     Serial.print((char)STK_OK);
@@ -307,7 +297,7 @@ void start_pmode() {
   delay(50);
   pinMode(MISO, INPUT);
   pinMode(MOSI, OUTPUT);
-  spi_transaction(0xAC, 0x53, 0x00, 0x00); iferr_log_return();
+  spi_transaction(0xAC, 0x53, 0x00, 0x00);
   pmode = 1;
 }
 
@@ -323,9 +313,8 @@ void universal() {
   int w;
   uint8_t ch;
 
-  fill(4); 
-  iferr_log_return();
-  ch = spi_transaction(buff[0], buff[1], buff[2], buff[3]); iferr_log_return();
+  fill(4);
+  ch = spi_transaction(buff[0], buff[1], buff[2], buff[3]);
   breply(ch);
 }
 
@@ -333,11 +322,11 @@ void flash(uint8_t hilo, int addr, uint8_t data) {
   spi_transaction(0x40+8*hilo, 
   addr>>8 & 0xFF, 
   addr & 0xFF,
-  data); iferr_log_return();
+  data);
 }
 void commit(int addr) {
   if (PROG_FLICKER) prog_lamp(LOW);
-  spi_transaction(0x4C, (addr >> 8) & 0xFF, addr & 0xFF, 0); iferr_log_return();
+  spi_transaction(0x4C, (addr >> 8) & 0xFF, addr & 0xFF, 0);
   if (PROG_FLICKER) {
     delay(PTIME);
     prog_lamp(HIGH);
@@ -355,11 +344,8 @@ int current_page(int addr) {
 
 
 void write_flash(int length) {
-  fill(length); 
-  iferr_log_return();
-  char c = getch(); 
-  iferr_log_return();
-  if (CRC_EOP == c) {
+  fill(length);
+  if (CRC_EOP == getch()) {
     Serial.print((char) STK_INSYNC);
     Serial.print((char) write_flash_pages(length));
   } 
@@ -380,7 +366,6 @@ uint8_t write_flash_pages(int length) {
     flash(LOW, here, buff[x++]);
     flash(HIGH, here, buff[x++]);
     here++;
-    assert_raise_return((millis() - isp_time) < 2000, ERR_TIMEOUT, STK_FAILED);
   }
 
   commit(page);
@@ -405,17 +390,15 @@ uint8_t write_eeprom(int length) {
   write_eeprom_chunk(start, remaining);
   return STK_OK;
 }
-
 // write (length) bytes, (start) is a byte address
 uint8_t write_eeprom_chunk(int start, int length) {
   // this writes byte-by-byte,
   // page writing may be faster (4 bytes at a time)
-  fill(length); 
-  iferr_log_return(STK_FAILED);
+  fill(length);
   prog_lamp(LOW);
   for (int x = 0; x < length; x++) {
     int addr = start+x;
-    spi_transaction(0xC0, (addr>>8) & 0xFF, addr & 0xFF, buff[x]); iferr_log_return();
+    spi_transaction(0xC0, (addr>>8) & 0xFF, addr & 0xFF, buff[x]);
     delay(45);
   }
   prog_lamp(HIGH); 
@@ -423,17 +406,10 @@ uint8_t write_eeprom_chunk(int start, int length) {
 }
 
 void program_page() {
-  char c;
   char result = (char) STK_FAILED;
-  int length = 256 * getch(); 
-  iferr_log_return(); 
-  iferr_log_return();
-  length += getch(); 
-  iferr_log_return(); 
-  iferr_log_return();
-  char memtype = getch(); 
-  iferr_log_return(); 
-  iferr_log_return();
+  int length = 256 * getch();
+  length += getch();
+  char memtype = getch();
   // flash memory @here, (length) bytes
   if (memtype == 'F') {
     write_flash(length);
@@ -441,9 +417,7 @@ void program_page() {
   }
   if (memtype == 'E') {
     result = (char)write_eeprom(length);
-    c = getch(); 
-    iferr_log_return();
-    if (CRC_EOP == c) {
+    if (CRC_EOP == getch()) {
       Serial.print((char) STK_INSYNC);
       Serial.print(result);
     } 
@@ -461,7 +435,7 @@ uint8_t flash_read(uint8_t hilo, int addr) {
   return spi_transaction(0x20 + hilo * 8,
   (addr >> 8) & 0xFF,
   addr & 0xFF,
-  0); iferr_log_return();
+  0);
 }
 
 char flash_read_page(int length) {
@@ -480,7 +454,7 @@ char eeprom_read_page(int length) {
   int start = here * 2;
   for (int x = 0; x < length; x++) {
     int addr = start + x;
-    uint8_t ee = spi_transaction(0xA0, (addr >> 8) & 0xFF, addr & 0xFF, 0xFF); iferr_log_return();
+    uint8_t ee = spi_transaction(0xA0, (addr >> 8) & 0xFF, addr & 0xFF, 0xFF);
     Serial.print((char) ee);
   }
   return STK_OK;
@@ -488,18 +462,10 @@ char eeprom_read_page(int length) {
 
 void read_page() {
   char result = (char)STK_FAILED;
-  int length = 256 * getch(); 
-  iferr_log_return(); 
-  iferr_log_return();
-  length += getch(); 
-  iferr_log_return(); 
-  iferr_log_return();
-  char memtype = getch(); 
-  iferr_log_return(); 
-  iferr_log_return();
-  char c = getch(); 
-  iferr_log_return();
-  if (CRC_EOP != c) {
+  int length = 256 * getch();
+  length += getch();
+  char memtype = getch();
+  if (CRC_EOP != getch()) {
     error++;
     Serial.print((char) STK_NOSYNC);
     return;
@@ -512,9 +478,7 @@ void read_page() {
 }
 
 void read_signature() {
-  char c = getch(); 
-  iferr_log_return();
-  if (CRC_EOP != c) {
+  if (CRC_EOP != getch()) {
     error++;
     Serial.print((char) STK_NOSYNC);
     return;
@@ -525,7 +489,6 @@ void read_signature() {
   uint8_t middle = spi_transaction(0x30, 0x00, 0x01, 0x00);
   Serial.print((char) middle);
   uint8_t low = spi_transaction(0x30, 0x00, 0x02, 0x00);
-   iferr_log_return();
   Serial.print((char) low);
   Serial.print((char) STK_OK);
 }
@@ -535,15 +498,10 @@ void read_signature() {
 
 ////////////////////////////////////
 ////////////////////////////////////
-void avrisp() { 
-  debug("In AVR");
-  isp_time = millis();
+int avrisp() { 
+  wdt_reset();  // pat the dog
   uint8_t data, low, high;
-  uint8_t ch = getch(); 
-  iferr_log_return(); 
-  iferr_log_return();
-  char c;
-
+  uint8_t ch = getch();
   switch (ch) {
   case '0': // signon
     error = 0;
@@ -557,19 +515,15 @@ void avrisp() {
     }
     break;
   case 'A':
-    c = getch(); 
-    iferr_log_return();
-    get_version(c);
+    get_version(getch());
     break;
   case 'B':
-    fill(20); 
-    iferr_log_return();
+    fill(20);
     set_parameters();
     empty_reply();
     break;
   case 'E': // extended parameters - ignore for now
-    fill(5); 
-    iferr_log_return();
+    fill(5);
     empty_reply();
     break;
 
@@ -578,28 +532,18 @@ void avrisp() {
     empty_reply();
     break;
   case 'U': // set address (word)
-    here = getch(); 
-    iferr_log_return(); 
-    iferr_log_return();
-    here += 256 * getch(); 
-    iferr_log_return(); 
-    iferr_log_return();
+    here = getch();
+    here += 256 * getch();
     empty_reply();
     break;
 
   case 0x60: //STK_PROG_FLASH
-    low = getch(); 
-    iferr_log_return(); 
-    iferr_log_return();
-    high = getch(); 
-    iferr_log_return(); 
-    iferr_log_return();
+    low = getch();
+    high = getch();
     empty_reply();
     break;
   case 0x61: //STK_PROG_DATA
-    data = getch(); 
-    iferr_log_return(); 
-    iferr_log_return();
+    data = getch();
     empty_reply();
     break;
 
@@ -634,15 +578,12 @@ void avrisp() {
     // anything else we will return STK_UNKNOWN
   default:
     error++;
-    c = getch(); 
-    iferr_log_return();
-    if (CRC_EOP == c)
+    if (CRC_EOP == getch()) 
       Serial.print((char)STK_UNKNOWN);
     else
       Serial.print((char)STK_NOSYNC);
   }
 }
-
 
 
 

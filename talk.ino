@@ -3,6 +3,7 @@ SoftwareSerial Talk(MISO, MOSI); // RX, TX
 #define ISP_START_CHAR 0x0A
 
 void talk(){
+  wdt_reset();
   char last_c;
   char c;
   if(Serial.available()){
@@ -29,7 +30,7 @@ void set_mode_talk(){
 }
 
 void set_mode_isp(){
-  isp_time = millis();
+  wdt_reset();
   mode = MODE_ISP;
 //  set_loglevel(LOGV_SILENT);
   debug("ISP Mode");
