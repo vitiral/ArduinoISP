@@ -44,6 +44,12 @@
 // - More information at http://code.google.com/p/mega-isp
 
 #include "pins_arduino.h"
+#include <errorhandling.h>
+
+#define MODE_TALK 0
+#define MOD_ISP   1
+unsigned short mode = MODE_TALK;
+
 #define RESET     SS
 
 #define LED_HB    9
