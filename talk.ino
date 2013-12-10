@@ -7,7 +7,9 @@ void talk(){
   char c;
   if(Serial.available()){
     if(Serial.peek() == ISP_START_CHAR){
+      debug("setting");
       set_mode_isp();
+      avrisp();
       return;
     }
     c = Serial.read();
@@ -15,20 +17,23 @@ void talk(){
   }
   if(Talk.available()){
     Serial.write(Talk.read());
-    Serial.flush();
   }
+  Serial.flush();
 }
 
 void set_mode_talk(){
   mode = MODE_TALK;
   Talk.begin(57600);
+  set_loglevel(LOGV_DEBUG);
   log_info("Talk Mode:");
-  //set_loglevel(LOGV_DEBUG);
 }
 
 void set_mode_isp(){
+  isp_time = millis();
   mode = MODE_ISP;
-  //set_loglevel(LOGV_SILENT);
+//  set_loglevel(LOGV_SILENT);
+  debug("ISP Mode");
+  if(derr) clrerr_log();
 }
 
 
