@@ -44,7 +44,8 @@
 // - More information at http://code.google.com/p/mega-isp
 
 #define DEBUG
-#define LOGLEVEL LOGV_DEBUG
+//#define LOGLEVEL LOGV_SILENT
+
 
 #include "pins_arduino.h"
 #include <SoftwareSerial.h>
@@ -85,6 +86,7 @@ void setup() {
   pinMode(LED_HB, OUTPUT);
   pulse(LED_HB, 2);
   wdt_enable(WDTO_2S);  //reset after 2 seconds if no pat received
+  log_info(String("Setup done, mode=") + String(mode));
 }
 
 int error=0;
@@ -129,7 +131,6 @@ void loop(void) {
   if(derr){
     set_mode_talk();
     clrerr_log();
-    debug("setting...");
   }
 
   if(mode != MODE_TALK){
