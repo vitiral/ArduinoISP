@@ -44,6 +44,7 @@
 // - More information at http://code.google.com/p/mega-isp
 
 #include "pins_arduino.h"
+#include <SoftwareSerial.h>
 #include <errorhandling.h>
 
 #define MODE_TALK 0
@@ -118,7 +119,6 @@ void heartbeat() {
   delay(20);
 }
 
-
 void loop(void) {
   // is pmode active?
   if (pmode) digitalWrite(LED_PMODE, HIGH); 
@@ -135,12 +135,16 @@ void loop(void) {
 }
 
 uint8_t getch() {
-  while(!Serial.available());
+  unsigned int time = millis();
+  while(!Serial.available()){
+    assert_raise_return(millis() - time < 500, ERR_TIMEOUT, 'E');
+  }
   return Serial.read();
 }
+
 void fill(int n) {
   for (int x = 0; x < n; x++) {
-    buff[x] = getch();
+    buff[x] = getch(); iferr_log_return();
   }
 }
 
@@ -191,7 +195,8 @@ uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
 }
 
 void empty_reply() {
-  if (CRC_EOP == getch()) {
+  char c = getch();
+  if (CRC_EOP == c) {
     Serial.print((char)STK_INSYNC);
     Serial.print((char)STK_OK);
   } 
@@ -202,7 +207,8 @@ void empty_reply() {
 }
 
 void breply(uint8_t b) {
-  if (CRC_EOP == getch()) {
+  char c = getch();
+  if (CRC_EOP == c) {
     Serial.print((char)STK_INSYNC);
     Serial.print((char)b);
     Serial.print((char)STK_OK);
@@ -317,7 +323,8 @@ int current_page(int addr) {
 
 void write_flash(int length) {
   fill(length);
-  if (CRC_EOP == getch()) {
+  char c = getch();
+  if (CRC_EOP == c) {
     Serial.print((char) STK_INSYNC);
     Serial.print((char) write_flash_pages(length));
   } 
@@ -378,10 +385,11 @@ uint8_t write_eeprom_chunk(int start, int length) {
 }
 
 void program_page() {
+  char c;
   char result = (char) STK_FAILED;
-  int length = 256 * getch();
-  length += getch();
-  char memtype = getch();
+  int length = 256 * getch(); iferr_log_return();
+  length += getch(); iferr_log_return();
+  char memtype = getch(); iferr_log_return();
   // flash memory @here, (length) bytes
   if (memtype == 'F') {
     write_flash(length);
@@ -389,7 +397,8 @@ void program_page() {
   }
   if (memtype == 'E') {
     result = (char)write_eeprom(length);
-    if (CRC_EOP == getch()) {
+    c = getch();
+    if (CRC_EOP == c) {
       Serial.print((char) STK_INSYNC);
       Serial.print(result);
     } 
@@ -434,10 +443,11 @@ char eeprom_read_page(int length) {
 
 void read_page() {
   char result = (char)STK_FAILED;
-  int length = 256 * getch();
-  length += getch();
-  char memtype = getch();
-  if (CRC_EOP != getch()) {
+  int length = 256 * getch(); iferr_log_return();
+  length += getch(); iferr_log_return();
+  char memtype = getch(); iferr_log_return();
+  char c = getch();
+  if (CRC_EOP != c) {
     error++;
     Serial.print((char) STK_NOSYNC);
     return;
@@ -450,7 +460,8 @@ void read_page() {
 }
 
 void read_signature() {
-  if (CRC_EOP != getch()) {
+  char c = getch();
+  if (CRC_EOP != c) {
     error++;
     Serial.print((char) STK_NOSYNC);
     return;
@@ -470,9 +481,10 @@ void read_signature() {
 
 ////////////////////////////////////
 ////////////////////////////////////
-int avrisp() { 
+void avrisp() { 
   uint8_t data, low, high;
-  uint8_t ch = getch();
+  uint8_t ch = getch(); iferr_log_return();
+  char c;
   switch (ch) {
   case '0': // signon
     error = 0;
@@ -486,7 +498,8 @@ int avrisp() {
     }
     break;
   case 'A':
-    get_version(getch());
+    c = getch();
+    get_version(c);
     break;
   case 'B':
     fill(20);
@@ -503,18 +516,18 @@ int avrisp() {
     empty_reply();
     break;
   case 'U': // set address (word)
-    here = getch();
-    here += 256 * getch();
+    here = getch(); iferr_log_return();
+    here += 256 * getch(); iferr_log_return();
     empty_reply();
     break;
 
   case 0x60: //STK_PROG_FLASH
-    low = getch();
-    high = getch();
+    low = getch(); iferr_log_return();
+    high = getch(); iferr_log_return();
     empty_reply();
     break;
   case 0x61: //STK_PROG_DATA
-    data = getch();
+    data = getch(); iferr_log_return();
     empty_reply();
     break;
 
@@ -549,7 +562,8 @@ int avrisp() {
     // anything else we will return STK_UNKNOWN
   default:
     error++;
-    if (CRC_EOP == getch()) 
+    c = getch();
+    if (CRC_EOP == c)
       Serial.print((char)STK_UNKNOWN);
     else
       Serial.print((char)STK_NOSYNC);
