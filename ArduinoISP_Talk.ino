@@ -43,12 +43,15 @@
 // - The SPI functions herein were developed for the AVR910_ARD programmer 
 // - More information at http://code.google.com/p/mega-isp
 
+#define DEBUG
+#define LOGLEVEL LOGV_DEBUG
+
 #include "pins_arduino.h"
 #include <SoftwareSerial.h>
 #include <errorhandling.h>
 
 #define MODE_TALK 0
-#define MOD_ISP   1
+#define MODE_ISP   1
 unsigned short mode = MODE_TALK;
 
 #define RESET     SS
@@ -119,32 +122,46 @@ void heartbeat() {
   delay(20);
 }
 
+unsigned int isp_time = millis();
 void loop(void) {
-  // is pmode active?
-  if (pmode) digitalWrite(LED_PMODE, HIGH); 
-  else digitalWrite(LED_PMODE, LOW);
-  // is there an error?
-  if (error) digitalWrite(LED_ERR, HIGH); 
-  else digitalWrite(LED_ERR, LOW);
-
-  // light the heartbeat LED
-  heartbeat();
-  if (Serial.available()) {
-    avrisp();
+  if(derr){
+    clrerr_log();
+    set_mode_talk();
   }
+  assert_raise_return((mode == MODE_TALK) or ((millis() - isp_time < 250)), ERR_TIMEOUT);
+
+  if(mode == MODE_ISP){
+    // is pmode active?
+    if (pmode) digitalWrite(LED_PMODE, HIGH); 
+    else digitalWrite(LED_PMODE, LOW);
+    // is there an error?
+    if (error) digitalWrite(LED_ERR, HIGH); 
+    else digitalWrite(LED_ERR, LOW);
+
+    // light the heartbeat LED
+    heartbeat();
+    if (Serial.available()) {
+      avrisp();
+    }
+  }
+  else if(mode == MODE_TALK){
+    talk();
+  }
+  else assert_return(0);
 }
 
 uint8_t getch() {
-  unsigned int time = millis();
   while(!Serial.available()){
-    assert_raise_return(millis() - time < 500, ERR_TIMEOUT, 'E');
+    assert_raise_return(millis() - isp_time < 500, ERR_TIMEOUT, 'E');
   }
+  isp_time = millis();
   return Serial.read();
 }
 
 void fill(int n) {
   for (int x = 0; x < n; x++) {
-    buff[x] = getch(); iferr_log_return();
+    buff[x] = getch(); 
+    iferr_log_return();
   }
 }
 
@@ -387,9 +404,12 @@ uint8_t write_eeprom_chunk(int start, int length) {
 void program_page() {
   char c;
   char result = (char) STK_FAILED;
-  int length = 256 * getch(); iferr_log_return();
-  length += getch(); iferr_log_return();
-  char memtype = getch(); iferr_log_return();
+  int length = 256 * getch(); 
+  iferr_log_return();
+  length += getch(); 
+  iferr_log_return();
+  char memtype = getch(); 
+  iferr_log_return();
   // flash memory @here, (length) bytes
   if (memtype == 'F') {
     write_flash(length);
@@ -443,9 +463,12 @@ char eeprom_read_page(int length) {
 
 void read_page() {
   char result = (char)STK_FAILED;
-  int length = 256 * getch(); iferr_log_return();
-  length += getch(); iferr_log_return();
-  char memtype = getch(); iferr_log_return();
+  int length = 256 * getch(); 
+  iferr_log_return();
+  length += getch(); 
+  iferr_log_return();
+  char memtype = getch(); 
+  iferr_log_return();
   char c = getch();
   if (CRC_EOP != c) {
     error++;
@@ -483,8 +506,10 @@ void read_signature() {
 ////////////////////////////////////
 void avrisp() { 
   uint8_t data, low, high;
-  uint8_t ch = getch(); iferr_log_return();
+  uint8_t ch = getch(); 
+  iferr_log_return();
   char c;
+  isp_time = millis();
   switch (ch) {
   case '0': // signon
     error = 0;
@@ -516,18 +541,23 @@ void avrisp() {
     empty_reply();
     break;
   case 'U': // set address (word)
-    here = getch(); iferr_log_return();
-    here += 256 * getch(); iferr_log_return();
+    here = getch(); 
+    iferr_log_return();
+    here += 256 * getch(); 
+    iferr_log_return();
     empty_reply();
     break;
 
   case 0x60: //STK_PROG_FLASH
-    low = getch(); iferr_log_return();
-    high = getch(); iferr_log_return();
+    low = getch(); 
+    iferr_log_return();
+    high = getch(); 
+    iferr_log_return();
     empty_reply();
     break;
   case 0x61: //STK_PROG_DATA
-    data = getch(); iferr_log_return();
+    data = getch(); 
+    iferr_log_return();
     empty_reply();
     break;
 
@@ -569,6 +599,7 @@ void avrisp() {
       Serial.print((char)STK_NOSYNC);
   }
 }
+
 
 
 
