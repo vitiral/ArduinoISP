@@ -58,7 +58,7 @@
 // - The SPI functions herein were developed for the AVR910_ARD programmer 
 // - More information at http://code.google.com/p/mega-isp
 
-//#define DEBUG
+#define DEBUG
 
 #include "pins_arduino.h"
 #include <SoftwareSerial.h>
@@ -67,6 +67,7 @@
 #include <errorhandling.h>
 #else
 #define debug(...)
+#define assert_return(...)
 #endif
 
 #include <avr/wdt.h>
