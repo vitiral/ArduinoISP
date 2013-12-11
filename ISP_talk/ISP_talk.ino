@@ -43,12 +43,17 @@
 // - The SPI functions herein were developed for the AVR910_ARD programmer 
 // - More information at http://code.google.com/p/mega-isp
 
-#define DEBUG
-//#define LOGLEVEL LOGV_SILENT
+//#define DEBUG
 
 #include "pins_arduino.h"
 #include <SoftwareSerial.h>
+
+#ifdef DEBUG
 #include <errorhandling.h>
+#else
+#define debug(...)
+#endif
+
 #include <avr/wdt.h>
 
 #define MODE_TALK 0
@@ -84,10 +89,9 @@ void setup() {
   pulse(LED_ERR, 2);
   pinMode(LED_HB, OUTPUT);
   pulse(LED_HB, 2);
-  wdt_enable(WDTO_2S);  //reset after 2 seconds if no pat received
+  wdt_enable(WDTO_250MS);  //reset after 250ms if no pat received
   set_mode_talk();
-  log_info(String("Setup done, mode=") + String(mode));
-  
+  debug(String("Setup done, mode=") + String(mode));
 }
 
 int error=0;
@@ -127,13 +131,8 @@ void heartbeat() {
   delay(20);
 }
 
-unsigned int isp_time = millis();
+unsigned int time = millis();
 void loop(void) {
-  if(derr){
-    set_mode_talk();
-    clrerr_log();
-  }
-
   if(mode == MODE_ISP){
     // is pmode active?
     if (pmode) digitalWrite(LED_PMODE, HIGH); 
@@ -152,7 +151,6 @@ void loop(void) {
     //debug("loop talk");
     talk();
   }
-  else assert_return(0);
 }
 
 uint8_t getch() {

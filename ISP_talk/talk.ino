@@ -28,7 +28,6 @@ void talk(){
 }
 
 void set_mode_talk(){
-  set_loglevel(LOGV_DEBUG);
   mode = MODE_TALK;
   Talk.begin(57600);
   Serial.println("Talk Mode:");
@@ -38,9 +37,7 @@ void set_mode_isp(){
   debug("ISP Mode");
   Talk.end();
   wdt_reset();
-  mode = MODE_ISP;
-  set_loglevel(LOGV_SILENT);
-  if(derr) clrerr_log();
+  mode = MODE_ISP;;
 }
 
 
