@@ -16,7 +16,7 @@ char Read(){
   return c;
 }
 
-uint8_t entered_avr(){
+uint8_t ISP_std_start(){
   unsigned long time;
   uint8_t ind = 0;
 
@@ -48,8 +48,14 @@ uint8_t entered_avr(){
       }
     }
   }
-  
- return 0;
+  assert_return(0, 0);
+}
+
+uint8_t check_avr_chars(){
+  if(ISP_std_start() == 0) return 0;
+  debug("first done");
+  if(ISP_std_start()) return 1;
+  else return 0;
 }
 
 void talk(){
@@ -57,7 +63,7 @@ void talk(){
   char c;
   if(Serial.available()){    
     //if(Serial.peek() == ISP_START_CHAR){
-    if(entered_avr()){ // does reading
+    if(check_avr_chars()){ // does reading
       set_mode_isp();
       avrisp();
       return;
@@ -79,11 +85,11 @@ void talk(){
 void set_mode_talk(){
   mode = MODE_TALK;
   Talk.begin(SOFT_BAUD);
-  Serial.println("Talk Mode:");
+  debug("TALK MODE");
 }
 
 void set_mode_isp(){
-  //debug("ISP Mode");
+  debug("ISP Mode");
   Talk.end();
   wdt_reset();
   mode = MODE_ISP;

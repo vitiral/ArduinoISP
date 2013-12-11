@@ -61,6 +61,7 @@
 //#define SOFT_BAUD 57600
 #define SOFT_BAUD 19200
 
+//#define LOGLEVEL 50
 //#define LOGLEVEL 30
 #define LOGLEVEL 0
 #define DEBUG
@@ -74,6 +75,8 @@
 #define debug(...)
 #define assert_return(...)
 #define assert_raise_return(...)
+#define assert_raisem_return(...)
+#define raise_return(...)
 #define ERR_TIMEOUT
 #define ERR_VALUE
 #endif
