@@ -1,0 +1,100 @@
+%% LyX 2.0.2 created this file.  For more info, see http://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[english]{article}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\usepackage{listings}
+\setlength{\parskip}{\smallskipamount}
+\setlength{\parindent}{0pt}
+\usepackage{babel}
+\usepackage{array}
+\usepackage[unicode=true]
+ {hyperref}
+\usepackage{breakurl}
+
+\makeatletter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LyX specific LaTeX commands.
+%% Because html converters don't know tabularnewline
+\providecommand{\tabularnewline}{\\}
+
+\makeatother
+
+\begin{document}
+
+\part*{ArduinoISP v 2}
+
+Copyright (c) 2014 Garrett Berg, \href{http://garrett@cloudformdesign.com}{garrett@cloudformdesign.com}
+
+Previous Copyright (c) 2008-2011 Randall Bohn as \href{http://ArduinoISP}{http://arduino.cc/en/Tutorial/ArduinoISP}
+
+\textbf{}%
+\begin{tabular}{|>{\centering}p{0.2\paperwidth}|>{\centering}p{0.4\paperwidth}|}
+\hline 
+Documentation: & \href{http://cloudformdesign.com/products/arduinoispv2}{http://cloudformdesign.com/products/arduinoispv2}\tabularnewline
+\hline 
+\hline 
+Updated Version & \href{https://github.com/cloudformdesign/ArduinoISP/releases}{https://github.com/cloudformdesign/ArduinoISP/releases}\tabularnewline
+\hline 
+\hline 
+BSD License & \href{http://www.opensource.org/licenses/bsd-license.php}{http://www.opensource.org/licenses/bsd-license.php}\tabularnewline
+\hline 
+\end{tabular}
+
+
+\section*{Summary}
+
+This sketch turns the Arduino into a AVRISP with the ability to communicate
+via SofwareSerial afterwards.
+
+It is the same as the original ArduinoISP, but with the added Talk
+feature.
+
+
+\section*{To use:}
+\begin{itemize}
+\item Open and load ISP\_talk onto your arduino, follow the directions \href{http://arduino.cc/en/Tutorial/ArduinoISP||http://arduino.cc/en/Tutorial/ArduinoISP}{here}.
+Your programming board should now be connected and programmed.
+\item To program your target device select the correct board and set the
+programmer to \textit{<Arduino as ISP>}
+\item Press \textit{<Cntrl+Shift+U>} to upload your sketch (instead of just
+\textit{<Cntrl+U}>)
+\item Follow directions below to take advantage of the talk feature.
+\end{itemize}
+
+\subsection*{New Talk Feature: }
+
+After programming, the Arduino passes through all serial communication
+(except the note below)
+
+For most arduino boards, configure the software port with:
+
+\begin{lstlisting}
+SoftwareSerial SoftSerial(MOSI, MISO); // RX, TX
+SoftSerial.begin(19200); // ISP_talk communicates at 19200 baud
+\end{lstlisting}
+
+
+IMPORTANT: ISP mode is triggered when the following is received from
+the computer
+
+\begin{lstlisting}
+:: 0x30, 0x20, (delay 250ms +/- 5ms), 0x30, 0x20, (delay 250ms +/- 5ms), 0x30
+\end{lstlisting}
+
+
+Where {[}0x30, 0x20{]} are consecutive bits (within 800us of each
+other)
+
+Note that 0x30 == '0' and 0x20 == ' '
+
+The targeted board can send any characters without triggering the
+ISP
+
+
+\subsection*{Examples}
+
+Check out ISP\_receiver for a simple example of how to use this library
+
+(it simply returns everything it receives)
+\end{document}
