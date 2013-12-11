@@ -1,4 +1,5 @@
 // ArduinoISP version 04m3
+// Copyright (c) 2014 Garrett Berg, garrett@cloudformdesign.com
 // Copyright (c) 2008-2011 Randall Bohn
 // If you require a license, see 
 //     http://www.opensource.org/licenses/bsd-license.php
@@ -16,6 +17,20 @@
 // 9: Heartbeat   - shows the programmer is running
 // 8: Error       - Lights up if something goes wrong (use red if that makes sense)
 // 7: Programming - In communication with the slave
+//
+// New "Talk" Feature:
+// After programming, the Arduino passes through all serial communication
+//   EXCEPT 0x30 (which resets it is an ISP)
+//
+// For most arduino boards, configure the software port with:
+//   SoftwareSerial SoftSerial(MOSI, MISO); // RX, TX
+//   SoftSerial.begin(57600);
+// 
+// IMPORTANT: your code cannot receive character 0x30 when using this
+//   library. All other characters are allowed.
+// 
+// 10 Dec 2014 by Garrett Berg
+// - Added "talk" feature, allowing communication through an ArduinoISP
 //
 // 23 July 2011 Randall Bohn
 // -Address Arduino issue 509 :: Portability of ArduinoISP
