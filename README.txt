@@ -1,19 +1,32 @@
 ArduinoISP v 2
 ============
+// ArduinoISP version 2
+// Copyright (c) 2014 Garrett Berg, garrett@cloudformdesign.com
+// LICENSE BSD: If you require a license, see 
+//     http://www.opensource.org/licenses/bsd-license.php
+//
+// For an updated version of this code, goto:
+//   https://github.com/cloudformdesign/ArduinoISP/releases
+//
+// Copyright (c) 2008-2011 Randall Bohn
+// This sketch turns the Arduino into a AVRISP with the ability to
+//   communicate via SofwareSerial afterwards
 
 Same as the ArduinoISP (http://arduino.cc/en/Tutorial/ArduinoISP), with
 added "Talk" feature.
 
-To use:
+###To use:
  Open and load ISP_talk onto your arduino, follow the directions in the
     tutorial linked above to connect and program the board
+ 
  To program your target device select the correct board and set the
     programmer to "Arduino as ISP"
+ 
  Press "Cntrl+Shift+U" to upload your sketch (instead of just "Cntrl+U")
  
  Follow directions below to take advantage of the talk feature.
 
- New "Talk" Feature: 
+ ###New "Talk" Feature: 
  After programming, the Arduino passes through all serial communication
    (except the note below)
 
@@ -28,5 +41,6 @@ To use:
 	
 	The Arduino can send any characters.
 
+ ###Examples
   Check out ISP_receiver for a simple example of how to use this library
    (it simply returns everything it receives)

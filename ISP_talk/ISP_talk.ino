@@ -1,10 +1,15 @@
-// ArduinoISP version 04m3
+// ArduinoISP version 2
 // Copyright (c) 2014 Garrett Berg, garrett@cloudformdesign.com
-// Copyright (c) 2008-2011 Randall Bohn
-// If you require a license, see 
+// LICENSE BSD: If you require a license, see 
 //     http://www.opensource.org/licenses/bsd-license.php
 //
-// This sketch turns the Arduino into a AVRISP
+// For an updated version of this code, goto:
+//   https://github.com/cloudformdesign/ArduinoISP/releases
+//
+// Copyright (c) 2008-2011 Randall Bohn
+// This sketch turns the Arduino into a AVRISP with the ability to
+//   communicate via SofwareSerial afterwards
+//
 // using the following arduino pins:
 //
 // pin name:    not-mega:         mega(1280 and 2560)
@@ -18,45 +23,8 @@
 // 8: Error       - Lights up if something goes wrong (use red if that makes sense)
 // 7: Programming - In communication with the slave
 //
-// New "Talk" Feature:
-// After programming, the Arduino passes through all serial communication
-//   EXCEPT 0x30 (which resets it is an ISP)
-//
-// For most arduino boards, configure the software port with:
-//   SoftwareSerial SoftSerial(MOSI, MISO); // RX, TX
-//   SoftSerial.begin(57600);
+// See README.txt for more information
 // 
-// IMPORTANT: your code cannot receive character 0x30 when using this
-//   library. All other characters are allowed.
-// 
-// 10 Dec 2014 by Garrett Berg
-// - Added "talk" feature, allowing communication through an ArduinoISP
-//
-// 23 July 2011 Randall Bohn
-// -Address Arduino issue 509 :: Portability of ArduinoISP
-// http://code.google.com/p/arduino/issues/detail?id=509
-//
-// October 2010 by Randall Bohn
-// - Write to EEPROM > 256 bytes
-// - Better use of LEDs:
-// -- Flash LED_PMODE on each flash commit
-// -- Flash LED_PMODE while writing EEPROM (both give visual feedback of writing progress)
-// - Light LED_ERR whenever we hit a STK_NOSYNC. Turn it off when back in sync.
-// - Use pins_arduino.h (should also work on Arduino Mega)
-//
-// October 2009 by David A. Mellis
-// - Added support for the read signature command
-// 
-// February 2009 by Randall Bohn
-// - Added support for writing to EEPROM (what took so long?)
-// Windows users should consider WinAVR's avrdude instead of the
-// avrdude included with Arduino software.
-//
-// January 2008 by Randall Bohn
-// - Thanks to Amplificar for helping me with the STK500 protocol
-// - The AVRISP/STK500 (mk I) protocol is used in the arduino bootloader
-// - The SPI functions herein were developed for the AVR910_ARD programmer 
-// - More information at http://code.google.com/p/mega-isp
 
 //#define SOFT_BAUD 57600
 #define SOFT_BAUD 19200
