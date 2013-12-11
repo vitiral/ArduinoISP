@@ -58,6 +58,11 @@
 // - The SPI functions herein were developed for the AVR910_ARD programmer 
 // - More information at http://code.google.com/p/mega-isp
 
+//#define SOFT_BAUD 57600
+#define SOFT_BAUD 19200
+
+//#define LOGLEVEL 30
+#define LOGLEVEL 0
 #define DEBUG
 
 #include "pins_arduino.h"
@@ -68,6 +73,9 @@
 #else
 #define debug(...)
 #define assert_return(...)
+#define assert_raise_return(...)
+#define ERR_TIMEOUT
+#define ERR_VALUE
 #endif
 
 #include <avr/wdt.h>
