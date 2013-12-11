@@ -116,7 +116,6 @@ void setup() {
   pulse(LED_ERR, 2);
   pinMode(LED_HB, OUTPUT);
   pulse(LED_HB, 2);
-  wdt_enable(WDTO_250MS);  //reset after 250ms if no pat received
   set_mode_talk();
   debug(String("Setup done, mode=") + String(mode));
 }

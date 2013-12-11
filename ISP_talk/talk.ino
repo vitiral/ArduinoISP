@@ -79,11 +79,13 @@ void talk(){
   //TODO: I need to flush and simultaniously pet the dog, but there
   //  is no way that I can tell to check if there is data in the
   //  buffer
-  //Serial.flush();
+  // Fix: wdt disabled for talk mode -- fix didn't work.
+  // Serial.flush();
 }
 
 void set_mode_talk(){
   mode = MODE_TALK;
+  wdt_disable();
   Talk.begin(SOFT_BAUD);
   debug("TALK MODE");
 }
@@ -91,6 +93,7 @@ void set_mode_talk(){
 void set_mode_isp(){
   debug("ISP Mode");
   Talk.end();
+  wdt_enable(WDTO_250MS);  //reset after 250ms if no pat received
   wdt_reset();
   mode = MODE_ISP;
   ;
