@@ -1,7 +1,7 @@
 ArduinoISP v 2
 ============
 
-Same as the ArduinoISP (<http://arduino.cc/en/Tutorial/ArduinoISP>), with
+Same as the ArduinoISP (http://arduino.cc/en/Tutorial/ArduinoISP), with
 added "Talk" feature.
 
  New "Talk" Feature:
