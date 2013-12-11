@@ -11,36 +11,48 @@ const uint64_t ISP_2commmand = 0x20302030;
 uint8_t entered_avr(char c){
   static char chs[2] = {0, 0};
   static unsigned long time_us[2];
-  char ch_i = 0;
+  unsigned long cur_us = micros();
+  unsigned long timedif;
+  
+  uint8_t ind = 0;
 
   // needs to be valid character
   if(c != ISP_CHAR1 and c != ISP_CHAR2) return 0;
-
+  
   // see where we are in the array
-  if(chs[0] == 0) ch_i = 0;
-  else if(chs[1] == 0) ch_i = 1;
-  else ch_i = 2;
+  if(chs[0] == 0) ind = 0;
+  else if(chs[1] == 0) ind = 1;
+  else ind = 2;
 
-  switch(ch_i){
+  switch(ind){
   case 0:
-    if(c!= ISP_CHAR1){
+    if(c != ISP_CHAR1){
       ISP_BUF_CLR();
+      debug(ind);
       return 0;
     }
+    
     chs[0] = c;
-    time_us[0] = micros();
+    time_us[0] = cur_us;
     return 0;
   case 1:
-    if(c != ISP_CHAR2){
+    if((c != ISP_CHAR2) or
+        (cur_us - time_us[ind - 1] > 800)){
       ISP_BUF_CLR();
+      debug(ind);
       return 0;
     }
     chs[1] = c;
-    time_us[1] = micros();
+    time_us[1] = cur_us;
     return 0;
   case 2:
-    if(c != ISP_CHAR1){
+    timedif = cur_us - time_us[ind -1];
+    if((c != ISP_CHAR1) or
+        (timedif < 245000) or
+        (timedif > 255000)){
       ISP_BUF_CLR();
+      debug(ind);
+      return 0;
     }
     return 1;
   }
