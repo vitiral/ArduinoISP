@@ -31,8 +31,8 @@
 
 //#define LOGLEVEL 50
 //#define LOGLEVEL 30
-#define LOGLEVEL 0
-#define DEBUG
+//#define LOGLEVEL 0
+//#define DEBUG
 
 #include "pins_arduino.h"
 #include <SoftwareSerial.h>
@@ -42,9 +42,9 @@
 #else
 #define debug(...)
 #define raise_return(E, ...) return __VA_ARGS__
-#define raise_mreturn(E, M, ...) return __VA_ARGS__
-#define ERR_TIMEOUT
-#define ERR_VALUE
+#define raisem_return(E, M, ...) return __VA_ARGS__
+#define ERR_TIMEOUT 1
+#define ERR_VALUE 2
 #endif
 
 #include <avr/wdt.h>

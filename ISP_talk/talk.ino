@@ -36,8 +36,8 @@ uint8_t ISP_std_start(){
     //assert_raisem_return(!Serial.available(), ERR_TIMEOUT, 
     //  String("too soon ") + String(millis() - time), 0);
     if(Serial.available()) {
-      raisem_return(ERR_TIMEOUT, 
-        String("too soon ") + String(millis() - time), 0);
+      raisem_return(ERR_TIMEOUT, String("too soon ") + String(millis() - time),
+        0);
     }
   }
   
@@ -54,7 +54,7 @@ uint8_t ISP_std_start(){
       }
     }
   }
-  assert_return(0, 0);
+  raise_return(1, 0);
 }
 
 uint8_t check_avr_chars(){
