@@ -41,10 +41,8 @@
 #include <errorhandling.h>
 #else
 #define debug(...)
-#define assert_return(...)
-#define assert_raise_return(...)
-#define assert_raisem_return(...)
-#define raise_return(...)
+#define raise_return(E, ...) return __VA_ARGS__
+#define raise_mreturn(E, M, ...) return __VA_ARGS__
 #define ERR_TIMEOUT
 #define ERR_VALUE
 #endif

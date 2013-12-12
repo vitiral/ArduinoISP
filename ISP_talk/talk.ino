@@ -24,15 +24,21 @@ uint8_t ISP_std_start(){
     return 0;
   }
   delayMicroseconds(800);
-  assert_raise_return(Serial.available(), ERR_TIMEOUT, 0);
-  assert_raise_return(Read() == ISP_CHAR2, ERR_VALUE, 0);
+  //assert_raise_return(Serial.available(), ERR_TIMEOUT, 0);
+  if(!Serial.available()) raise_return(ERR_TIMEOUT, 0);
+  //assert_raise_return(Read() == ISP_CHAR2, ERR_VALUE, 0);
+  if(Read() != ISP_CHAR2) raise_return(ERR_VALUE, 0);
   
   // If anything is sent before the time interval, invalid
   time = millis();
   while(millis() - time < 245){
     wdt_reset();
-    assert_raisem_return(!Serial.available(), ERR_TIMEOUT, 
-      String("too soon ") + String(millis() - time), 0);
+    //assert_raisem_return(!Serial.available(), ERR_TIMEOUT, 
+    //  String("too soon ") + String(millis() - time), 0);
+    if(Serial.available()) {
+      raisem_return(ERR_TIMEOUT, 
+        String("too soon ") + String(millis() - time), 0);
+    }
   }
   
   time = millis();
